@@ -10,6 +10,76 @@ interface MessageListProps {
   isLoading?: boolean;
 }
 
+type ToolInvocationArgs = {
+  command?: string;
+  path?: string;
+  new_path?: string;
+};
+
+function parseToolArgs(args: unknown): ToolInvocationArgs {
+  if (!args) {
+    return {};
+  }
+
+  if (typeof args === "string") {
+    try {
+      const parsed = JSON.parse(args);
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return typeof args === "object" ? (args as ToolInvocationArgs) : {};
+}
+
+function getFileName(path?: string): string {
+  if (!path) {
+    return "file";
+  }
+
+  const parts = path.split("/").filter(Boolean);
+  return parts[parts.length - 1] || path;
+}
+
+function getToolInvocationLabel(toolInvocation: {
+  toolName?: string;
+  args?: unknown;
+}): string {
+  const args = parseToolArgs(toolInvocation.args);
+  const fileName = getFileName(args.path);
+
+  if (toolInvocation.toolName === "str_replace_editor") {
+    switch (args.command) {
+      case "create":
+        return `Creating file: ${fileName}`;
+      case "str_replace":
+      case "insert":
+      case "undo_edit":
+        return `Editing file: ${fileName}`;
+      case "view":
+        return `Reading file: ${fileName}`;
+      default:
+        return "Editing file...";
+    }
+  }
+
+  if (toolInvocation.toolName === "file_manager") {
+    switch (args.command) {
+      case "rename":
+        return args.new_path
+          ? `Renaming file: ${getFileName(args.path)} -> ${getFileName(args.new_path)}`
+          : `Renaming file: ${fileName}`;
+      case "delete":
+        return `Deleting file: ${fileName}`;
+      default:
+        return "Managing files...";
+    }
+  }
+
+  return toolInvocation.toolName || "Running tool...";
+}
+
 export function MessageList({ messages, isLoading }: MessageListProps) {
   if (messages.length === 0) {
     return (
@@ -78,17 +148,18 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
                             );
                           case "tool-invocation":
                             const tool = part.toolInvocation;
+                            const toolLabel = getToolInvocationLabel(tool);
                             return (
                               <div key={partIndex} className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 bg-neutral-50 rounded-lg text-xs font-mono border border-neutral-200">
                                 {tool.state === "result" && tool.result ? (
                                   <>
                                     <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                    <span className="text-neutral-700">{tool.toolName}</span>
+                                    <span className="text-neutral-700">{toolLabel}</span>
                                   </>
                                 ) : (
                                   <>
                                     <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
-                                    <span className="text-neutral-700">{tool.toolName}</span>
+                                    <span className="text-neutral-700">{toolLabel}</span>
                                   </>
                                 )}
                               </div>

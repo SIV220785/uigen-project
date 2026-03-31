@@ -65,7 +65,10 @@ test("MessageList renders messages with parts", () => {
           type: "tool-invocation",
           toolInvocation: {
             toolCallId: "asdf",
-            args: {},
+            args: {
+              command: "create",
+              path: "/components/Button.jsx",
+            },
             toolName: "str_replace_editor",
             state: "result",
             result: "Success",
@@ -78,7 +81,65 @@ test("MessageList renders messages with parts", () => {
   render(<MessageList messages={messages} />);
 
   expect(screen.getByText("Creating your component...")).toBeDefined();
-  expect(screen.getByText("str_replace_editor")).toBeDefined();
+  expect(screen.getByText("Creating file: Button.jsx")).toBeDefined();
+});
+
+test("MessageList renders editing label for str_replace_editor", () => {
+  const messages: Message[] = [
+    {
+      id: "1",
+      role: "assistant",
+      content: "",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            toolCallId: "asdf",
+            args: JSON.stringify({
+              command: "str_replace",
+              path: "/components/Card.jsx",
+            }),
+            toolName: "str_replace_editor",
+            state: "call",
+          },
+        },
+      ],
+    },
+  ];
+
+  render(<MessageList messages={messages} />);
+
+  expect(screen.getByText("Editing file: Card.jsx")).toBeDefined();
+});
+
+test("MessageList renders file_manager label", () => {
+  const messages: Message[] = [
+    {
+      id: "1",
+      role: "assistant",
+      content: "",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            toolCallId: "asdf",
+            args: {
+              command: "rename",
+              path: "/components/OldCard.jsx",
+              new_path: "/components/NewCard.jsx",
+            },
+            toolName: "file_manager",
+            state: "result",
+            result: "Success",
+          },
+        },
+      ],
+    },
+  ];
+
+  render(<MessageList messages={messages} />);
+
+  expect(screen.getByText("Renaming file: OldCard.jsx -> NewCard.jsx")).toBeDefined();
 });
 
 test("MessageList shows content for assistant message with content", () => {
